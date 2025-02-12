@@ -155,7 +155,7 @@ def main():
                     
                 print("\nFound these relevant passages:\n")
                 for i, result in enumerate(results, 1):
-                    print(f"[{i}] From: {os.path.basename(result['file_path'])}")
+                    print(f"[{i}] From: {os.path.basename(result['file_path'])} (Page {result['page']})")
                     print(f"Score: {result['score']:.2f}")
                     print("─" * 80)
                     print(textwrap.fill(result['content'], width=80))
