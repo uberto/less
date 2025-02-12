@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "less"
+version = "0.1.0"
+description = "LESS (LLM Empowered Semantic Search) - A powerful semantic search engine for your PDF documents"
+authors = ["Uberto Barbini"]
+readme = "README.md"
+packages = [{include = "less", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pypdf = "^3.17.1"
+tqdm = "^4.66.1"
+chromadb = "^0.4.22"
+sentence-transformers = "^2.3.1"
+pycryptodome = "^3.20.0"
+
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
