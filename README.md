@@ -49,6 +49,11 @@ This will:
 - Create a `.less_index` directory to store the search index
 - Process all supported documents (PDF, MD, TXT)
 - Skip any previously indexed documents (using content hash)
+
+Options:
+- `--reset`: Reset the index before indexing new documents
+- `--chunk-size`: Size of text chunks in characters (default: 500)
+- `--chunk-overlap`: Overlap between chunks in characters (default: 50)
 - Show progress with a nice progress bar
 
 ### Searching Documents

@@ -387,9 +387,9 @@ def main():
         help=f"Overlap between chunks in characters (default: {DEFAULT_CHUNK_OVERLAP})"
     )
     parser.add_argument(
-        "--force",
+        "--reset",
         action="store_true",
-        help="Force reset the index before indexing"
+        help="Reset the index before indexing"
     )
     
     args = parser.parse_args()
@@ -399,9 +399,9 @@ def main():
         return 1
         
     try:
-        if args.force:
+        if args.reset:
             print("Resetting index...")
-        indexer = DocIndexer(args.directory, force_reset=args.force)
+        indexer = DocIndexer(args.directory, force_reset=args.reset)
         indexer.chunk_size = args.chunk_size
         indexer.chunk_overlap = args.chunk_overlap
         indexer.index_documents()
