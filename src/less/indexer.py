@@ -11,7 +11,17 @@ import hashlib
 from typing import List, Dict, Any
 import textwrap
 
-class PDFSearcher:
+from .constants import (
+    COLLECTION_NAME,
+    INDEX_DIR_NAME,
+    EMBEDDING_MODEL,
+    VECTOR_SPACE,
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_CHUNK_OVERLAP,
+    SUPPORTED_EXTENSIONS
+)
+
+class DocIndexer:
     def __init__(self, base_directory: str):
         """Initialize the indexer with a base directory to store indices.
         
@@ -20,9 +30,9 @@ class PDFSearcher:
                            The index will be stored in .less_index subdirectory.
         """
         self.base_directory = os.path.abspath(base_directory)
-        self.index_directory = os.path.join(self.base_directory, '.less_index')
-        self.chunk_size = 500  # characters per chunk
-        self.chunk_overlap = 50  # characters overlap between chunks
+        self.index_directory = os.path.join(self.base_directory, INDEX_DIR_NAME)
+        self.chunk_size = DEFAULT_CHUNK_SIZE
+        self.chunk_overlap = DEFAULT_CHUNK_OVERLAP
         
         # Create index directory if it doesn't exist
         os.makedirs(self.index_directory, exist_ok=True)
@@ -30,25 +40,24 @@ class PDFSearcher:
         # Initialize ChromaDB with sentence-transformers embedding function
         self.chroma_client = chromadb.PersistentClient(path=self.index_directory)
         self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name="all-MiniLM-L6-v2"  # This is a smaller, more compatible model
+            model_name=EMBEDDING_MODEL
         )
         
         # Create or get the collection
-        collection_name = "document_collection"
         collections = self.chroma_client.list_collections()
-        collection_exists = any(c.name == collection_name for c in collections)
+        collection_exists = any(c.name == COLLECTION_NAME for c in collections)
         
         if collection_exists:
             self.collection = self.chroma_client.get_collection(
-                name=collection_name,
+                name=COLLECTION_NAME,
                 embedding_function=self.embedding_function
             )
         else:
             self.collection = self.chroma_client.create_collection(
-                name=collection_name,
+                name=COLLECTION_NAME,
                 embedding_function=self.embedding_function,
                 metadata={
-                    "hnsw:space": "cosine",
+                    "hnsw:space": VECTOR_SPACE,
                     "base_directory": self.base_directory
                 }
             )
@@ -111,7 +120,7 @@ class PDFSearcher:
     def index_documents(self) -> None:
         """Index all PDF files in the specified directory using sliding window chunking."""
         # Get list of PDF files
-        pdf_files = [f for f in os.listdir(self.base_directory) if f.lower().endswith('.pdf')]
+        pdf_files = [f for f in os.listdir(self.base_directory) if any(f.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS)]
         print(f"Found {len(pdf_files)} PDF files...")
 
         successful = 0
@@ -223,14 +232,14 @@ def main():
     parser.add_argument(
         "--chunk-size",
         type=int,
-        default=500,
-        help="Size of text chunks in characters (default: 500)"
+        default=DEFAULT_CHUNK_SIZE,
+        help=f"Size of text chunks in characters (default: {DEFAULT_CHUNK_SIZE})"
     )
     parser.add_argument(
         "--chunk-overlap",
         type=int,
-        default=50,
-        help="Overlap between chunks in characters (default: 50)"
+        default=DEFAULT_CHUNK_OVERLAP,
+        help=f"Overlap between chunks in characters (default: {DEFAULT_CHUNK_OVERLAP})"
     )
     
     args = parser.parse_args()
@@ -240,7 +249,7 @@ def main():
         return 1
         
     try:
-        indexer = PDFSearcher(args.directory)
+        indexer = DocIndexer(args.directory)
         indexer.chunk_size = args.chunk_size
         indexer.chunk_overlap = args.chunk_overlap
         indexer.index_documents()

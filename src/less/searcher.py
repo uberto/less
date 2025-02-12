@@ -1,9 +1,20 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import argparse
 import chromadb
 from chromadb.utils import embedding_functions
 from typing import List, Dict, Any, Optional
 import textwrap
 from dataclasses import dataclass
 from datetime import datetime
+
+from .constants import (
+    COLLECTION_NAME,
+    INDEX_DIR_NAME,
+    DEFAULT_SEARCH_LIMIT
+)
 
 @dataclass
 class SearchFilter:
@@ -15,21 +26,28 @@ class SearchFilter:
     language: Optional[str] = None
     tags: Optional[List[str]] = None
 
-class PDFSearcher:
-    def __init__(self, persist_directory="pdf_index"):
-        self.persist_directory = persist_directory
+class DocSearcher:
+    def __init__(self, base_directory: str):
+        """Initialize the searcher with a base directory containing the index.
         
-        # Initialize ChromaDB with sentence-transformers embedding function
-        self.chroma_client = chromadb.PersistentClient(path=persist_directory)
-        self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name="multi-qa-mpnet-base-dot-v1"
-        )
+        Args:
+            base_directory: The directory containing the documents and index.
+                           The index should be in .less_index subdirectory.
+        """
+        self.base_directory = os.path.abspath(base_directory)
+        self.index_directory = os.path.join(self.base_directory, INDEX_DIR_NAME)
+        
+        if not os.path.exists(self.index_directory):
+            raise ValueError(f"No index found in {self.base_directory}. Please run the indexer first.")
+        
+        # Initialize ChromaDB client
+        self.chroma_client = chromadb.PersistentClient(path=self.index_directory)
         
         # Get the collection
-        self.collection = self.chroma_client.get_collection(
-            name="pdf_collection",
-            embedding_function=self.embedding_function
-        )
+        try:
+            self.collection = self.chroma_client.get_collection(name=COLLECTION_NAME)
+        except ValueError:
+            raise ValueError(f"No documents indexed in {self.base_directory}. Please run the indexer first.")
 
     def _build_where_clause(self, search_filter: Optional[SearchFilter] = None) -> Dict:
         """Build ChromaDB where clause from search filters."""
@@ -55,131 +73,103 @@ class PDFSearcher:
             
         return where
 
-    def search(self, 
-               query_text: str, 
-               search_filter: Optional[SearchFilter] = None,
-               limit: int = 5
-    ) -> List[Dict[str, Any]]:
+    def search(self, query_text: str, limit: int = 5) -> List[Dict[str, Any]]:
         """
-        Search through indexed PDFs using vector similarity and metadata filters.
+        Search through indexed PDFs using vector similarity.
         
         Args:
             query_text: The search query
-            search_filter: Optional SearchFilter object for metadata filtering
             limit: Maximum number of results to return
             
         Returns:
-            List of search results with metadata and excerpts
+            List of search results with metadata and content
         """
-        where = self._build_where_clause(search_filter)
-        
-        results = self.collection.query(
-            query_texts=[query_text],
-            where=where,
-            n_results=limit
-        )
-
-        if not results or not results['distances']:
-            print("No matching documents found.")
-            return []
-
-        search_results = []
-        seen_files = set()
-
-        for i, (doc_id, distance, metadata, text) in enumerate(zip(
-            results['ids'][0],
-            results['distances'][0],
-            results['metadatas'][0],
-            results['documents'][0]
-        )):
-            file_path = metadata['file_path']
-            if file_path not in seen_files:
-                seen_files.add(file_path)
-                result = {
-                    'file_name': metadata['file_name'],
-                    'file_path': file_path,
-                    'score': 1 - distance,  # Convert distance to similarity score
-                    'excerpt': textwrap.fill(text, width=80)
-                }
-                
-                # Add available metadata
-                for key in ['author', 'title', 'year', 'category', 'publisher', 
-                          'language', 'tags']:
-                    if f'metadata/{key}' in metadata:
-                        result[key] = metadata[f'metadata/{key}']
-                
-                search_results.append(result)
-
-        return search_results
-
-def main():
-    searcher = PDFSearcher()
-    # !!! dir
-    
-    
-    while True:
-        print("\nPDF Search Menu:")
-        print("1. Simple Search")
-        print("2. Advanced Search with Filters")
-        print("3. Exit")
-        
-        choice = input("Enter your choice (1-3): ")
-        
-        if choice == "1":
-            query = input("Enter your search query: ")
-            results = searcher.search(query)
-            
-        elif choice == "2":
-            query = input("Enter your search query: ")
-            
-            # Collect filter criteria
-            print("\nEnter filter criteria (press Enter to skip):")
-            author = input("Author: ").strip() or None
-            title = input("Title: ").strip() or None
-            year = input("Year: ").strip()
-            year = int(year) if year.isdigit() else None
-            category = input("Category: ").strip() or None
-            publisher = input("Publisher: ").strip() or None
-            language = input("Language: ").strip() or None
-            tags = input("Tags (comma-separated): ").strip()
-            tags = [t.strip() for t in tags.split(",")] if tags else None
-            
-            search_filter = SearchFilter(
-                author=author,
-                title=title,
-                year=year,
-                category=category,
-                publisher=publisher,
-                language=language,
-                tags=tags
+        try:
+            results = self.collection.query(
+                query_texts=[query_text],
+                n_results=limit
             )
             
-            results = searcher.search(query, search_filter=search_filter)
+            if not results['ids'] or not results['ids'][0]:
+                return []
+            search_results = []
+            for i, (doc_id, distance, metadata, text) in enumerate(zip(
+                results['ids'][0],
+                results['distances'][0],
+                results['metadatas'][0],
+                results['documents'][0]
+            )):
+                result = {
+                    'file_path': metadata['file_path'],
+                    'score': 1 - distance,  # Convert distance to similarity score
+                    'content': text,
+                    'metadata': metadata
+                }
+                search_results.append(result)
+
+            return search_results
             
-        elif choice == "3":
-            print("Goodbye!")
-            break
-        else:
-            print("Invalid choice! Please try again.")
-            continue
-            
-        # Display results
-        if results:
-            print("\nSearch Results:")
-            for i, result in enumerate(results, 1):
-                print(f"\n{i}. File: {result['file_name']}")
-                print(f"   Path: {result['file_path']}")
-                print(f"   Score: {result['score']:.2f}")
+        except Exception as e:
+            print(f"Search error: {str(e)}")
+            return []
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="LESS - LLM Empowered Semantic Search"
+    )
+    parser.add_argument(
+        "directory",
+        help="Directory containing indexed documents"
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=DEFAULT_SEARCH_LIMIT,
+        help=f"Number of results to show per query (default: {DEFAULT_SEARCH_LIMIT})"
+    )
+    
+    args = parser.parse_args()
+    
+    try:
+        searcher = DocSearcher(args.directory)
+        print(f"\nConnected to index in {args.directory}")
+        print("Type your search query. Press Ctrl+C or type 'exit' to quit.\n")
+        
+        while True:
+            try:
+                query = input("🔍 ").strip()
+                if not query:
+                    continue
+                if query.lower() == 'exit':
+                    break
+                    
+                results = searcher.search(query, limit=args.limit)
                 
-                # Display available metadata
-                for key in ['author', 'title', 'year', 'category', 'publisher', 
-                          'language', 'tags']:
-                    if key in result:
-                        print(f"   {key.title()}: {result[key]}")
+                if not results:
+                    print("\nNo results found.\n")
+                    continue
+                    
+                print("\nFound these relevant passages:\n")
+                for i, result in enumerate(results, 1):
+                    print(f"[{i}] From: {os.path.basename(result['file_path'])}")
+                    print(f"Score: {result['score']:.2f}")
+                    print("─" * 80)
+                    print(result['excerpt'])
+                    print("─" * 80 + "\n")
+                    
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                print(f"\nError: {str(e)}\n")
+                continue
                 
-                print(f"   Excerpt: {result['excerpt']}")
-        else:
-            print("No results found.")
+        print("\nGoodbye!")
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return 1
+        
+    return 0
 
 if __name__ == "__main__":
     main()
