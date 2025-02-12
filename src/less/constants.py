@@ -13,7 +13,7 @@ DEFAULT_CHUNK_SIZE = 500  # characters per chunk
 DEFAULT_CHUNK_OVERLAP = 50  # characters overlap between chunks
 
 # Search settings
-DEFAULT_SEARCH_LIMIT = 5  # number of results to return
+DEFAULT_SEARCH_LIMIT = 20  # number of results to return
 
 # File types
 SUPPORTED_EXTENSIONS = [".pdf",".md", ".txt"]  # list of supported file extensions

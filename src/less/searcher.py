@@ -154,7 +154,7 @@ def main():
                     print(f"[{i}] From: {os.path.basename(result['file_path'])}")
                     print(f"Score: {result['score']:.2f}")
                     print("─" * 80)
-                    print(result['excerpt'])
+                    print(textwrap.fill(result['content'], width=80))
                     print("─" * 80 + "\n")
                     
             except KeyboardInterrupt:
