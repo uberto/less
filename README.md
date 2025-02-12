@@ -38,16 +38,40 @@ poetry install
 
 ## Usage
 
-Run the script using Poetry:
+### Indexing Documents
+
+To index a directory containing your documents (PDF, text, etc.):
 ```bash
-poetry run python indexer.py
+poetry run python -m less.indexer /path/to/your/documents
 ```
 
-The tool provides three options:
+This will:
+- Create a `.less_index` directory to store the search index
+- Process all supported documents (PDF, MD, TXT)
+- Skip any previously indexed documents (using content hash)
+- Show progress with a nice progress bar
 
-1. **Index directory**: Point the tool to a directory containing your documents (PDF, text, etc.) to create/update the search index
-2. **Search indexed documents**: Search through your indexed documents using keywords
-3. **Exit**: Close the application
+### Searching Documents
+
+To search through your indexed documents:
+```bash
+poetry run python -m less.searcher /path/to/your/documents "your search query"
+```
+
+This will:
+- Return the top 10 most relevant results (configurable)
+- Show the matching text snippets with context
+- Display the source document for each match
+
+### Examples
+
+```bash
+# Index all documents in your ebooks directory
+poetry run python -m less.indexer ~/ebooks
+
+# Search for specific topics in your indexed documents
+poetry run python -m less.searcher ~/ebooks "machine learning fundamentals"
+```
 
 ## How it works
 

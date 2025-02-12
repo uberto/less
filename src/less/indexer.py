@@ -10,6 +10,7 @@ from chromadb.utils import embedding_functions
 import hashlib
 from typing import List, Dict, Any
 import textwrap
+import spacy
 
 from .constants import (
     COLLECTION_NAME,
@@ -43,6 +44,9 @@ class DocIndexer:
             model_name=EMBEDDING_MODEL
         )
         
+        # Load spaCy model for better text chunking
+        self.nlp = spacy.load('en_core_web_sm')
+        
         # Create or get the collection
         collections = self.chroma_client.list_collections()
         collection_exists = any(c.name == COLLECTION_NAME for c in collections)
@@ -69,15 +73,55 @@ class DocIndexer:
             return hashlib.sha256(content).hexdigest()
 
     def create_chunks(self, text: str) -> List[str]:
-        """Create overlapping chunks of text using sliding window."""
+        """Create semantic chunks using spaCy's sentence segmentation."""
+        doc = self.nlp(text)
         chunks = []
-        start = 0
-        while start < len(text):
-            end = start + self.chunk_size
-            chunk = text[start:end]
-            chunks.append(chunk)
-            start = end - self.chunk_overlap
-        return chunks
+        current_chunk = ""
+        current_length = 0
+
+        for sent in doc.sents:
+            sentence = sent.text.strip()
+            if not sentence:
+                continue
+
+            # If adding this sentence would exceed chunk size, start a new chunk
+            if current_length + len(sentence) + 2 > self.chunk_size:
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                current_chunk = sentence + ". "
+                current_length = len(sentence) + 2
+            # Otherwise, add the sentence to the current chunk
+            else:
+                current_chunk += sentence + ". "
+                current_length += len(sentence) + 2
+
+        # Add the last chunk if it exists
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+
+        # If chunks are too long, split them further
+        final_chunks = []
+        for chunk in chunks:
+            if len(chunk) > self.chunk_size:
+                # Split into smaller chunks while trying to maintain sentence boundaries
+                words = chunk.split()
+                sub_chunk = ""
+                sub_length = 0
+                for word in words:
+                    if sub_length + len(word) + 1 <= self.chunk_size:
+                        sub_chunk += word + " "
+                        sub_length += len(word) + 1
+                    else:
+                        if sub_chunk:
+                            final_chunks.append(sub_chunk.strip())
+                        sub_chunk = word + " "
+                        sub_length = len(word) + 1
+                if sub_chunk:
+                    final_chunks.append(sub_chunk.strip())
+            else:
+                final_chunks.append(chunk)
+
+        return final_chunks
 
     def extract_text_from_pdf(self, pdf_path: str) -> str:
         """Extract text content from a PDF file."""

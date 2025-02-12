@@ -7,12 +7,14 @@ readme = "README.md"
 packages = [{include = "less", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "~3.12"
 pypdf = "^3.17.1"
 tqdm = "^4.66.1"
-chromadb = "^0.4.22"
+chromadb = "^0.6.3"
 sentence-transformers = "^2.3.1"
 pycryptodome = "^3.20.0"
+numpy = "^2.2.2"
+spacy = "^3.8.4"
 
 
 
