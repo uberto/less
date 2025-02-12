@@ -101,12 +101,16 @@ class DocSearcher:
             )):
                 result = {
                     'file_path': metadata['file_path'],
+                    'file_name': metadata['file_name'],
+                    'page': int(metadata.get('page', '1')),  # Get page number, default to 1
                     'score': 1 - distance,  # Convert distance to similarity score
                     'content': text,
                     'metadata': metadata
                 }
                 search_results.append(result)
 
+            # Sort results by score and then by page number
+            search_results.sort(key=lambda x: (-x['score'], x['page']))
             return search_results
             
         except Exception as e:
