@@ -334,38 +334,7 @@ class DocIndexer:
         print(f"↷ Skipped (already indexed): {skipped} files")
         print(f"✗ Failed to index: {failed} files")
 
-    def search(self, query_text: str, limit: int = 5) -> List[Dict[str, Any]]:
-        """Search through indexed PDFs using vector similarity."""
-        results = self.collection.query(
-            query_texts=[query_text],
-            n_results=limit
-        )
-
-        if not results or not results['distances']:
-            print("No matching documents found.")
-            return []
-
-        search_results = []
-        seen_files = set()
-
-        for i, (doc_id, distance, metadata, text) in enumerate(zip(
-            results['ids'][0],
-            results['distances'][0],
-            results['metadatas'][0],
-            results['documents'][0]
-        )):
-            file_path = metadata['file_path']
-            if file_path not in seen_files:
-                seen_files.add(file_path)
-                search_results.append({
-                    'file_name': metadata['file_name'],
-                    'file_path': file_path,
-                    'score': 1 - distance,  # Convert distance to similarity score
-                    'excerpt': textwrap.fill(text, width=80)
-                })
-
-        return search_results
-
+ 
 def main():
     parser = argparse.ArgumentParser(
         description="LESS - LLM Empowered Semantic Search Indexer"

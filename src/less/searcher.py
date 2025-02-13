@@ -13,7 +13,9 @@ from datetime import datetime
 from .constants import (
     COLLECTION_NAME,
     INDEX_DIR_NAME,
-    DEFAULT_SEARCH_LIMIT
+    DEFAULT_SEARCH_LIMIT,
+    EMBEDDING_MODEL,
+    SEARCH_PADDING
 )
 
 @dataclass
@@ -43,9 +45,17 @@ class DocSearcher:
         # Initialize ChromaDB client
         self.chroma_client = chromadb.PersistentClient(path=self.index_directory)
         
+        # Initialize embedding function
+        self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name=EMBEDDING_MODEL
+        )
+
         # Get the collection
         try:
-            self.collection = self.chroma_client.get_collection(name=COLLECTION_NAME)
+            self.collection = self.chroma_client.get_collection(
+                name=COLLECTION_NAME,
+                embedding_function=self.embedding_function
+            )
         except ValueError:
             raise ValueError(f"No documents indexed in {self.base_directory}. Please run the indexer first.")
 
@@ -85,8 +95,11 @@ class DocSearcher:
             List of search results with metadata and content
         """
         try:
+            # Apply padding to the query
+            padded_query = SEARCH_PADDING.format(query=query_text)
+            
             results = self.collection.query(
-                query_texts=[query_text],
+                query_texts=[padded_query],
                 n_results=limit
             )
             
