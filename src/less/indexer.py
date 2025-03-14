@@ -244,20 +244,41 @@ class DocIndexer:
             print(f"Error opening {pdf_path}: {str(e)}")
             return ""
 
+    def extract_text_from_file(self, file_path: str) -> List[Dict[str, Any]]:
+        """Extract text content from a text file.
+        
+        Returns:
+            List of dictionaries containing text and page number (always 1 for text files).
+        """
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+                content = file.read()
+                if content:
+                    return [{
+                        'text': content.strip(),
+                        'page': 1  # Text files are considered as single page
+                    }]
+                else:
+                    print(f"Warning: No content in {file_path}")
+                    return []
+        except Exception as e:
+            print(f"Error reading {file_path}: {str(e)}")
+            return []
+            
     def index_documents(self) -> None:
-        """Index all PDF files in the specified directory using sliding window chunking."""
-        # Get list of PDF files
-        pdf_files = [f for f in os.listdir(self.base_directory) if any(f.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS)]
-        print(f"Found {len(pdf_files)} PDF files...")
+        """Index all supported files in the specified directory using sliding window chunking."""
+        # Get list of supported files
+        files = [f for f in os.listdir(self.base_directory) if any(f.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS)]
+        print(f"Found {len(files)} files...")
 
         successful = 0
         skipped = 0
         failed = 0
         
-        for pdf_file in tqdm(pdf_files, desc="Processing PDFs", unit="file"):
+        for file_name in tqdm(files, desc="Processing files", unit="file"):
             try:
-                pdf_path = os.path.join(self.base_directory, pdf_file)
-                doc_id = self.get_document_id(pdf_path)
+                file_path = os.path.join(self.base_directory, file_name)
+                doc_id = self.get_document_id(file_path)
 
                 # Check if document is already indexed
                 try:
@@ -265,14 +286,23 @@ class DocIndexer:
                         ids=[f"{doc_id}_0"]  # Try to get the first chunk
                     )
                     if existing_docs and len(existing_docs['ids']) > 0:
-                        print(f"\nSkipping {pdf_file} - already indexed")
+                        print(f"\nSkipping {file_name} - already indexed")
                         skipped += 1
                         continue
                 except Exception:
                     pass  # Document not found, continue with indexing
 
-                # Extract text and create chunks for each page
-                pages = self.extract_text_from_pdf(pdf_path)
+                # Extract text based on file type
+                pages = []
+                file_type = ""
+                
+                if file_name.lower().endswith('.pdf'):
+                    pages = self.extract_text_from_pdf(file_path)
+                    file_type = "pdf"
+                elif file_name.lower().endswith(('.txt', '.md')):
+                    pages = self.extract_text_from_file(file_path)
+                    file_type = "text"
+                
                 if not pages:
                     failed += 1
                     continue
@@ -292,11 +322,11 @@ class DocIndexer:
                         all_chunks.append(chunk['text'])
                         chunk_metadatas.append({
                             "doc_id": doc_id,
-                            "file_path": pdf_path,
-                            "file_name": pdf_file,
+                            "file_path": file_path,
+                            "file_name": file_name,
                             "chunk_index": str(chunk_index),
                             "page": str(chunk['page']),  # Store page number
-                            "source": "pdf"
+                            "source": file_type
                         })
                         chunk_index += 1
 

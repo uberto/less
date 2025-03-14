@@ -1,0 +1,36 @@
+# Machine Learning Fundamentals
+
+Machine learning is a branch of artificial intelligence that focuses on building systems that learn from data.
+
+## Types of Machine Learning
+
+1. **Supervised Learning**: The algorithm is trained on labeled data. The model learns to predict outputs based on inputs.
+   - Classification: Predicting a category (e.g., spam detection)
+   - Regression: Predicting a continuous value (e.g., house prices)
+
+2. **Unsupervised Learning**: The algorithm is trained on unlabeled data and finds patterns on its own.
+   - Clustering: Grouping similar data points (e.g., customer segmentation)
+   - Dimensionality Reduction: Reducing the number of variables
+
+3. **Reinforcement Learning**: The algorithm learns by interacting with an environment and receiving rewards or penalties.
+   - Used in robotics, gaming, and autonomous systems
+
+## Common Algorithms
+
+- Linear Regression
+- Logistic Regression
+- Decision Trees
+- Random Forests
+- Support Vector Machines
+- Neural Networks
+- K-means Clustering
+
+## Steps in Machine Learning Pipeline
+
+1. Data Collection
+2. Data Preprocessing
+3. Feature Engineering
+4. Model Selection
+5. Training
+6. Evaluation
+7. Deployment
