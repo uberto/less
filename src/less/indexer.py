@@ -236,13 +236,11 @@ class DocIndexer:
                     
                 except Exception as e:
                     print(f"Error: Invalid PDF format in {pdf_path}: {str(e)}")
-                    return ""
-                except Exception as e:
-                    print(f"Error processing {pdf_path}: {str(e)}")
-                    return ""
+                    return []
+
         except Exception as e:
             print(f"Error opening {pdf_path}: {str(e)}")
-            return ""
+            return []
 
     def extract_text_from_file(self, file_path: str) -> List[Dict[str, Any]]:
         """Extract text content from a text file.
@@ -331,7 +329,7 @@ class DocIndexer:
                         chunk_index += 1
 
                 if not all_chunks:
-                    print(f"\nWarning: No text content found in {pdf_file}")
+                    print(f"\nWarning: No text content found in {file_name}")
                     failed += 1
                     continue
 
@@ -355,7 +353,7 @@ class DocIndexer:
                 successful += 1
                 
             except Exception as e:
-                print(f"\nError processing {pdf_file}: {str(e)}")
+                print(f"\nError processing {file_name}: {str(e)}")
                 failed += 1
                 continue
 

@@ -5,6 +5,7 @@ COLLECTION_NAME = "document_collection"
 INDEX_DIR_NAME = ".less_index"
 
 # Model settings
+#try also nomic-embed-text
 EMBEDDING_MODEL = "intfloat/e5-mistral-7b-instruct"
 VECTOR_SPACE = "cosine"
 
