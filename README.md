@@ -68,6 +68,29 @@ This will:
 - Show the matching text snippets with context
 - Display the source document for each match
 
+Example search response:
+```
+Found these relevant passages:
+
+[1] From: sample_document.pdf (Page 3)
+Score: 0.92
+────────────────────────────────────────────────────────────────────────────────
+Machine learning algorithms can be categorized as supervised, unsupervised, or
+reinforcement learning. Supervised learning uses labeled data to train models
+that can make predictions on new, unseen data. Common supervised learning
+algorithms include linear regression, logistic regression, and neural networks.
+────────────────────────────────────────────────────────────────────────────────
+
+[2] From: ai_textbook.pdf (Page 42)
+Score: 0.87
+────────────────────────────────────────────────────────────────────────────────
+The fundamentals of machine learning involve understanding data patterns and
+creating models that can generalize from these patterns. Feature selection and
+engineering are critical steps in the machine learning pipeline, as they
+directly impact model performance and interpretability.
+────────────────────────────────────────────────────────────────────────────────
+```
+
 ### Examples
 
 ```bash
